@@ -31,14 +31,14 @@ class DifyBot(Bot):
             session_id = context["session_id"]
             channel_type = conf().get("channel_type")
             user = None
-            if channel_type == "wx":
+            if channel_type == "ntchat":
                 user = context["msg"].other_user_nickname if context.get("msg") else "default"
-            elif channel_type in ["wechatcom_app", "wechatmp", "wechatmp_service", "wechatcom_service", "wework",
-                                  "dingtalk"]:
-                user = context["msg"].other_user_id if context.get("msg") else "default"
+            # elif channel_type in ["wechatcom_app", "wechatmp", "wechatmp_service", "wechatcom_service", "wework",
+            #                       "dingtalk"]:
+            #     user = context["msg"].other_user_id if context.get("msg") else "default"
             else:
                 return Reply(ReplyType.ERROR,
-                             f"unsupported channel type: {channel_type}, now dify only support wx, wechatcom_app, wechatmp, wechatmp_service, dingtalk channel")
+                             f"unsupported channel type: {channel_type}, now dify only support ntchat channel")
             logger.debug(f"[DIFY] dify_user={user}")
             user = user if user else "default" # 防止用户名为None，当被邀请进的群未设置群名称时用户名为None
             session = self.sessions.get_session(session_id, user)
@@ -74,7 +74,7 @@ class DifyBot(Bot):
             session.count_user_message() # 限制一个conversation中消息数，防止conversation过长
             dify_app_type = conf().get('dify_app_type', 'chatbot')
             if dify_app_type == 'chatbot':
-                return self._handle_chatbot(query, session)
+                return self._handle_chatbot(query, session, context)
             elif dify_app_type == 'agent':
                 return self._handle_agent(query, session, context)
             elif dify_app_type == 'workflow':
@@ -87,13 +87,44 @@ class DifyBot(Bot):
             logger.exception(error_info)
             return None, error_info
 
-    def _handle_chatbot(self, query: str, session: DifySession):
+    def _handle_chatbot(self, query: str, session: DifySession,context: Context):
         # TODO: 获取response部分抽取为公共函数
         base_url = self._get_api_base_url()
         chat_url = f'{base_url}/chat-messages'
         headers = self._get_headers()
-        response_mode = 'blocking'
-        payload = self._get_payload(query, session, response_mode)
+        response_mode ='blocking'
+        is_group = None
+        #"from_group_display_name": "{context['msg'].self_display_name}",
+        if context['msg'].is_group == True:
+            is_group = "isgroup"
+        else:
+            is_group = "isnotgroup"
+        query_string = f"""{{
+          "is_group": "{is_group}",
+          "from_group_nickname": "{context['msg'].other_user_nickname}",
+          "from_user_id": "{context['msg'].from_user_id}",
+          "from_user_nickname": "{context['msg'].from_user_nickname}",
+          "query": "{query}"
+        }}"""
+        print(query_string)
+        payload = self._get_payload(query_string, session, response_mode)
+        print("***********************handle_chatbot*最后传给dify的报文")
+        # print("guid:"context['msg'].guid)
+        # print(context['msg'].msg_id)
+        # print(context['msg'].create_time)
+        # print(context['msg'].ctype)
+        # print(context['msg'].content)
+        # print(context['msg'].from_user_id)
+        # print(context['msg'].from_user_nickname)
+        # print(context['msg'].to_user_id)
+        # print(context['msg'].to_user_nickname)
+        # print(context['msg'].other_user_id)
+        # print(context['msg'].other_user_nickname)
+        # print(context['msg'].my_msg)
+        # print(context['msg'].actual_user_id)
+        # print(context['msg'].actual_user_nickname)
+        # print(context['msg'].is_group)
+        # print(payload)
         response = requests.post(chat_url, headers=headers, json=payload)
         if response.status_code != 200:
             error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
@@ -115,6 +146,8 @@ class DifyBot(Bot):
         headers = self._get_headers()
         response_mode = 'streaming'
         payload = self._get_payload(query, session, response_mode)
+        print("************************agent*最后传给dify的报文")
+        print(payload)
         response = requests.post(chat_url, headers=headers, json=payload)
         if response.status_code != 200:
             error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
@@ -153,12 +186,16 @@ class DifyBot(Bot):
         workflow_url = f'{base_url}/workflows/run'
         headers = self._get_headers()
         payload = self._get_workflow_payload(query, session)
+        print("************************workflow*最后传给dify的报文")
+        print(payload)
         response = requests.post(workflow_url, headers=headers, json=payload)
         if response.status_code != 200:
             error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
             logger.warn(error_info)
             return None, error_info
         rsp_data = response.json()
+        print("************************workflow*最后dify返回的报文")
+        print(rsp_data)
         reply = Reply(ReplyType.TEXT, rsp_data['data']['outputs']['text'])
         return reply, None
 
