@@ -6,19 +6,19 @@
 > **本项目仅供学习和技术研究，请勿用于非法用途，如有任何人凭此做何非法事情，均于作者无关，特此声明。**
 > **本项目仅能在Win平台运行！**
 
-项目目录结构
-bot|对话机器人接口
-bridge|用于桥接不同bot
-channel｜监听IM消息，并做处理
-common｜
-plugins｜
-venv｜
-voice｜
-app.py｜启动程序
-config.json｜配置文件
-config.py｜配置文件说明
-requirements.txt｜必要依赖
-requirements-optional.txt｜可选依赖
+# 项目目录结构
+**bot|对话机器人接口**
+**bridge|用于桥接不同bot**
+**channel｜监听IM消息，并做处理**
+**common｜**
+**plugins｜**
+**venv｜**
+**voice｜**
+**app.py｜启动程序**
+**config.json｜配置文件**
+**config.py｜配置文件说明**
+**requirements.txt｜必要依赖**
+**requirements-optional.txt｜可选依赖**
 
 # 快速开始
 
