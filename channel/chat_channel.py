@@ -93,6 +93,7 @@ class ChatChannel(Channel):
             e_context = PluginManager().emit_event(
                 EventContext(Event.ON_RECEIVE_MESSAGE, {"channel": self, "context": context}))
             context = e_context["context"]
+            # print("***************************这里是要传给大模型的content"+content)
             if e_context.is_pass() or context is None:
                 return context
 
@@ -193,7 +194,6 @@ class ChatChannel(Channel):
         logger.debug("[WX] ready to handle context: {}".format(context))
         # reply的构建步骤
         reply = self._generate_reply(context)
-
         logger.debug("[WX] ready to decorate reply: {}".format(reply))
         # reply的包装步骤
         reply = self._decorate_reply(context, reply)
@@ -214,6 +214,8 @@ class ChatChannel(Channel):
             if e_context.is_break():
                 context["generate_breaked_by"] = e_context["breaked_by"]
             if context.type == ContextType.TEXT or context.type == ContextType.IMAGE_CREATE:  # 文字和图片消息
+                # print("self.msg_id:" + self.msg_id)
+                #进入bridge,根据配置进入不同的bot
                 reply = super().build_reply_content(context.content, context)
             elif context.type == ContextType.VOICE:  # 语音消息
                 cmsg = context["msg"]
@@ -313,7 +315,11 @@ class ChatChannel(Channel):
                         reply = super().build_text_to_voice(reply.content)
                         return self._decorate_reply(context, reply)
                     if context.get("isgroup", False):
-                        reply_text = "@" + context["msg"].actual_user_nickname + "\n" + reply_text.strip()
+                        # reply_text = "@" + context["msg"].actual_user_nickname + "\n" + reply_text.strip()
+                        if context["msg"] and context["msg"].actual_user_nickname:
+                            reply_text = "@" + context["msg"].actual_user_nickname + "\n" + reply_text.strip()
+                        else:
+                            reply_text = reply_text.strip()
                         reply_text = conf().get("group_chat_reply_prefix", "") + reply_text + conf().get(
                             "group_chat_reply_suffix", "")
                     else:

@@ -30,7 +30,7 @@ class GroupAssistant(Plugin):
             # 如果配置文件不存在
             if not os.path.exists(config_path):
                 # 输出日志信息，配置文件不存在，将使用模板
-                logger.error('[GroupAssistant] 配置文件不存在，法启动群聊邀请插件')
+                logger.error('[GroupAssistant] 配置文件不存在，无法启动群聊邀请插件')
                 return
             elif channel_type != "ntchat" and channel_type != "weworktop":
                 logger.error('[GroupAssistant] 不支持的消息通道，无法启动群聊邀请插件')

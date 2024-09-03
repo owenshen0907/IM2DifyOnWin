@@ -74,6 +74,7 @@ class Bridge(object):
         return self.btype[typename]
 
     def fetch_reply_content(self, query, context: Context) -> Reply:
+        # print("*************在Bridge中,根据参数进入不同的波特，后面的冒号后面是query:"+query)
         return self.get_bot("chat").reply(query, context)
 
     def fetch_voice_to_text(self, voiceFile) -> Reply:

@@ -96,6 +96,7 @@ def _check(func):
                         ntchat.MT_RECV_SYSTEM_MSG,ntchat.MT_RECV_WCPAY_MSG,ntchat.MT_RECV_VIDEO_MSG,ntchat.MT_RECV_MINIAPP_MSG,ntchat.MT_ROOM_DEL_MEMBER_NOTIFY_MSG])
 def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     logger.debug(f"收到消息: {message}")
+    # 判断是否是群聊消息room_wxid是群聊的wxid，没有值则不是群聊消息
     if message["data"]["room_wxid"]:
         try:
             cmsg = NtchatMessage(wechat_instance, message, True)
@@ -110,7 +111,7 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
         except NotImplementedError as e:
             # logger.debug("[WX]single message {} skipped: {}".format(message["MsgId"], e))
             return None
-
+    # 判断是否是群聊消息的回复
     if ifgroup:
         NtchatChannel().handle_group(cmsg)
     else:
@@ -250,6 +251,8 @@ class NtchatChannel(ChatChannel):
         else:
             logger.debug("[WX]receive group msg: {}".format(cmsg.content))
         context = self._compose_context(cmsg.ctype, cmsg.content, isgroup=True, msg=cmsg)
+        # print("调用处理消息的方法后面是处理后的content：")
+        # print(context)
         if context:
             self.produce(context)
 

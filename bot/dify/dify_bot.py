@@ -106,9 +106,10 @@ class DifyBot(Bot):
           "from_user_nickname": "{context['msg'].from_user_nickname}",
           "query": "{query}"
         }}"""
-        print(query_string)
+        logger.debug(f"[DIFY] query_string={query_string}")
+        # print(query_string)
         payload = self._get_payload(query_string, session, response_mode)
-        print("***********************handle_chatbot*最后传给dify的报文")
+        # print("***********************handle_chatbot*最后传给dify的报文")
         # print("guid:"context['msg'].guid)
         # print(context['msg'].msg_id)
         # print(context['msg'].create_time)
@@ -146,8 +147,8 @@ class DifyBot(Bot):
         headers = self._get_headers()
         response_mode = 'streaming'
         payload = self._get_payload(query, session, response_mode)
-        print("************************agent*最后传给dify的报文")
-        print(payload)
+        # print("************************agent*最后传给dify的报文")
+        # print(payload)
         response = requests.post(chat_url, headers=headers, json=payload)
         if response.status_code != 200:
             error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
@@ -186,16 +187,16 @@ class DifyBot(Bot):
         workflow_url = f'{base_url}/workflows/run'
         headers = self._get_headers()
         payload = self._get_workflow_payload(query, session)
-        print("************************workflow*最后传给dify的报文")
-        print(payload)
+        # print("************************workflow*最后传给dify的报文")
+        # print(payload)
         response = requests.post(workflow_url, headers=headers, json=payload)
         if response.status_code != 200:
             error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
             logger.warn(error_info)
             return None, error_info
         rsp_data = response.json()
-        print("************************workflow*最后dify返回的报文")
-        print(rsp_data)
+        # print("************************workflow*最后dify返回的报文")
+        # print(rsp_data)
         reply = Reply(ReplyType.TEXT, rsp_data['data']['outputs']['text'])
         return reply, None
 

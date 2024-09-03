@@ -81,6 +81,18 @@ def get_display_name_or_nickname(room_members, group_wxid, wxid):
 
 class NtchatMessage(ChatMessage):
     def __init__(self, wechat, wechat_msg, is_group=False):
+        """
+        微信消息对象的初始化方法。
+        Args:
+            wechat (WechatBot): 微信机器人对象。
+            wechat_msg (dict): 接收到的微信消息。
+            is_group (bool, optional): 是否为群聊消息，默认为False。
+        Returns:
+            None.
+        Raises:
+            NotImplementedError: 如果消息类型不被支持。
+            Exception: 在初始化过程中发生的其他异常。
+        """
         try:
             super().__init__(wechat_msg)
             self.msg_id = wechat_msg['data'].get('from_wxid', wechat_msg['data'].get("room_wxid"))

@@ -14,6 +14,7 @@ available_setting = {
     "open_ai_api_key": "",  # openai api key
     # openai apibase，当use_azure_chatgpt为true时，需要设置对应的api base
     "open_ai_api_base": "https://api.openai.com/v1",
+    "bot_type": "moonshot",
     # depseek配置
     "deepseek_api_key": "",
     "deepseek_base_url": "https://api.deepseek.com/v1/chat/completions",

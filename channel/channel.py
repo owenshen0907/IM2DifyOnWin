@@ -34,6 +34,8 @@ class Channel(object):
         raise NotImplementedError
 
     def build_reply_content(self, query, context: Context = None) -> Reply:
+        # print("*************在channel中调用bridge的方法，并传入query:" + str(query))
+        # 调用Bridge中的方法,根据配置进入不同bot
         return Bridge().fetch_reply_content(query, context)
 
     def build_voice_to_text(self, voice_file) -> Reply:

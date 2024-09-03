@@ -12,6 +12,14 @@ def sigterm_handler_wrap(_signo):
     old_handler = signal.getsignal(_signo)
 
     def func(_signo, _stack_frame):
+        """
+        处理信号并保存用户数据。
+        Args:
+            _signo (int): 接收到的信号编号。
+            _stack_frame (object): 当前堆栈帧。
+        Returns:
+            None.
+        """
         logger.info("signal {} received, exiting...".format(_signo))
         conf().save_user_datas()
         if callable(old_handler):  # check old_handler
