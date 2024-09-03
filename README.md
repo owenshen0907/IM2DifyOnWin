@@ -7,18 +7,18 @@
 > **本项目仅能在Win平台运行！**
 
 # 项目目录结构
-**bot|对话机器人接口**
-**bridge|用于桥接不同bot**
-**channel｜监听IM消息，并做处理**
-**common｜**
-**plugins｜**
-**venv｜**
-**voice｜**
-**app.py｜启动程序**
-**config.json｜配置文件**
-**config.py｜配置文件说明**
-**requirements.txt｜必要依赖**
-**requirements-optional.txt｜可选依赖**
+>**bot|对话机器人接口**
+>**bridge|用于桥接不同bot**
+>**channel｜监听IM消息，并做处理**
+>**common｜**
+>**plugins｜**
+>**venv｜**
+>**voice｜**
+>**app.py｜启动程序**
+>**config.json｜配置文件**
+>**config.py｜配置文件说明**
+>**requirements.txt｜必要依赖**
+>**requirements-optional.txt｜可选依赖**
 
 # 快速开始
 
