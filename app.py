@@ -43,7 +43,7 @@ def run():
 
         if "--cmd" in sys.argv:
             channel_name = "terminal"
-
+        logger.debug("********************app.py的run（）")
         channel = channel_factory.create_channel(channel_name)
         if channel_name in ["ntchat", "wework", "weworktop"]:
             PluginManager().load_plugins()
