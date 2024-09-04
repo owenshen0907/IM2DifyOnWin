@@ -148,6 +148,7 @@ class NtchatChannel(ChatChannel):
         super().__init__()
 
     def startup(self):
+        logger.debug("*************************启动ntchat")
         smart = conf().get("ntchat_smart", True)
         wechatnt.open(smart=smart)
         wechatnt.wait_login()

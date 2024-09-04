@@ -1,3 +1,4 @@
+from common.log import logger
 """
 channel factory
 """
@@ -19,7 +20,7 @@ def create_channel(channel_type):
         return WeworkChannel()
     elif channel_type == "ntchat":
         from channel.wechatnt.ntchat_channel import NtchatChannel
-
+        logger.debug("****************channel factory")
         return NtchatChannel()
     elif channel_type == "weworktop":
         from channel.weworktop.weworktop_channel import WeworkTopChannel
