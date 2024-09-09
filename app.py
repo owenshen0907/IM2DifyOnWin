@@ -6,6 +6,7 @@ import sys
 from channel import channel_factory
 from config import load_config
 from plugins import *
+from channel.wechatnt.linkMysql import link_db
 
 
 def sigterm_handler_wrap(_signo):
@@ -28,7 +29,6 @@ def sigterm_handler_wrap(_signo):
 
     signal.signal(_signo, func)
 
-
 def run():
     try:
         # load config
@@ -40,6 +40,16 @@ def run():
 
         # create channel
         channel_name = conf().get("channel_type", "ntchat")
+        if conf().get("wechat_link_db"):
+            config={
+                'user': conf().get("db_user"),
+                'password': conf().get("db_password"),
+                'host': conf().get("db_host"),
+                'port': conf().get("db_port"),
+                'database': conf().get("db_name"),
+            }
+            link_db(config)
+
 
         if "--cmd" in sys.argv:
             channel_name = "terminal"

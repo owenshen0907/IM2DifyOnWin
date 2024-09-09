@@ -157,6 +157,13 @@ available_setting = {
     "subscribe_msg": "",  # 订阅消息, 支持: wechatmp, wechatmp_service, wechatcom_app
     "debug": False,  # 是否开启debug模式，开启后会打印更多日志
     "appdata_dir": "",  # 数据目录
+    # wechat消息存储数据
+    "wechat_link_db": False,  # 是否开启wechat消息存储,开启的话请先配置好数据库账户，目前支持的数据是MySQL8.0
+    "db_host": "127.0.0.1",  # 数据库地址
+    "db_user": "root",  # 数据库用户名
+    "db_password": "",  # 数据库密码
+    "db_port": "3306",  # 数据库端口
+    "db_name": "chat_record",  # 数据库名称
     # 插件配置
     "plugin_trigger_prefix": "$",  # 规范插件提供聊天相关指令的前缀，建议不要和管理员指令前缀"#"冲突
     # 是否使用全局插件配置
