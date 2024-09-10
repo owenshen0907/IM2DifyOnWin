@@ -16,6 +16,7 @@ from common.log import logger
 from common.time_check import time_checker
 from config import conf
 from channel.wechatnt.nt_run import *
+from channel.wechatnt.operateMysql import operateMysql
 
 
 def download_and_compress_image(url, filename, quality=80):
@@ -117,6 +118,33 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     else:
         NtchatChannel().handle_single(cmsg)
     logger.debug(f"收到cmsg: {cmsg}")
+    try:
+        if conf().get("wechat_link_db"):
+            dbconfig = {
+                'user': conf().get("db_user"),
+                'password': conf().get("db_password"),
+                'host': conf().get("db_host"),
+                'port': conf().get("db_port"),
+                'database': conf().get("db_name"),
+            }
+            print(dbconfig)
+            chatinfo = {
+                'from_id': cmsg.from_user_id,
+                'from_nick': cmsg.from_user_nickname,
+                'msg': cmsg.content,
+                'timestamp': cmsg.create_time,
+                'msg_type': str(cmsg.ctype),
+                'isgroup': cmsg.is_group,
+                'to_id': cmsg.to_user_id,
+                'to_nick': cmsg.to_user_nickname,
+                'group_id': cmsg.other_user_id,
+                'group_name': cmsg.other_user_nickname
+
+            }
+            print(chatinfo)
+        operateMysql(dbconfig, chatinfo)
+    except Exception as e:
+        logger.error(e)
     return None
 
 
