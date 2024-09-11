@@ -31,7 +31,7 @@ def link_db(config):
     # 定义表结构的SQL语句
     private_chat_table = """
     CREATE TABLE IF NOT EXISTS private_chat (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        msgid VARCHAR(100)  PRIMARY KEY,
         host_wx_id VARCHAR(50) NOT NULL,
         host_wx_name VARCHAR(100),
         sender_id VARCHAR(50) NOT NULL,
@@ -41,8 +41,9 @@ def link_db(config):
         msg_content TEXT,
         img_path VARCHAR(255),
         attachment_path VARCHAR(255),
-        link_url VARCHAR(255),
+        link_url VARCHAR(1000),
         record_time DATETIME NOT NULL,
+        replay2msgid VARCHAR(255),
         ext_field1 VARCHAR(255),
         ext_field2 VARCHAR(255)
     );
@@ -50,7 +51,7 @@ def link_db(config):
 
     group_chat_table = """
     CREATE TABLE IF NOT EXISTS group_chat (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        msgid VARCHAR(100) PRIMARY KEY,
         group_id VARCHAR(50) NOT NULL,
         group_name VARCHAR(100),
         group_alias VARCHAR(100),
@@ -61,8 +62,9 @@ def link_db(config):
         msg_content TEXT,
         img_path VARCHAR(255),
         attachment_path VARCHAR(255),
-        link_url VARCHAR(255),
+        link_url VARCHAR(1000),
         record_time DATETIME NOT NULL,
+        replay2msgid VARCHAR(255),
         ext_field1 VARCHAR(255),
         ext_field2 VARCHAR(255)
     );

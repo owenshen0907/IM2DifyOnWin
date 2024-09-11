@@ -95,6 +95,7 @@ class DifyBot(Bot):
         response_mode ='blocking'
         is_group = None
         #"from_group_display_name": "{context['msg'].self_display_name}",
+        logger.info(f"content={context['msg']}")
         if context['msg'].is_group == True:
             is_group = "isgroup"
         else:

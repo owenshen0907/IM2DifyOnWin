@@ -99,6 +99,9 @@ class NtchatMessage(ChatMessage):
             self.create_time = wechat_msg['data'].get("timestamp")
             self.is_group = is_group
             self.wechat = wechat
+            #消息唯一标识
+            self.messageid = wechat_msg['data'].get('msgid')
+            self.sourcemsg = wechat_msg['data'].get('raw_msg')
 
             # 获取一些可能多次使用的值
             current_dir = os.getcwd()

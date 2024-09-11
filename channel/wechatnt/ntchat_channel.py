@@ -127,8 +127,9 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
                 'port': conf().get("db_port"),
                 'database': conf().get("db_name"),
             }
-            print(dbconfig)
+            # print(dbconfig)
             chatinfo = {
+                'msgid': cmsg.messageid,
                 'from_id': cmsg.from_user_id,
                 'from_nick': cmsg.from_user_nickname,
                 'msg': cmsg.content,
@@ -138,10 +139,10 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
                 'to_id': cmsg.to_user_id,
                 'to_nick': cmsg.to_user_nickname,
                 'group_id': cmsg.other_user_id,
-                'group_name': cmsg.other_user_nickname
-
+                'group_name': cmsg.other_user_nickname,
+                'source_content': cmsg.sourcemsg
             }
-            print(chatinfo)
+            # print(chatinfo)
         operateMysql(dbconfig, chatinfo)
     except Exception as e:
         logger.error(e)
