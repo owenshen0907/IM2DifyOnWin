@@ -55,9 +55,8 @@ def run():
             channel_name = "terminal"
         logger.debug("********************app.py的run（）")
         channel = channel_factory.create_channel(channel_name)
-        if channel_name in ["ntchat", "wework", "weworktop"]:
-            PluginManager().load_plugins()
-
+        # if channel_name in ["ntchat", "wework", "weworktop"]:
+        #     PluginManager().load_plugins()
         # startup channel
         channel.startup()
     except Exception as e:

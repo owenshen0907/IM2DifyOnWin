@@ -17,7 +17,7 @@ from common.time_check import time_checker
 from config import conf
 from channel.wechatnt.nt_run import *
 from channel.wechatnt.operateMysql import operateMysql
-
+from datetime import datetime
 
 def download_and_compress_image(url, filename, quality=80):
     # 确定保存图片的目录
@@ -120,20 +120,20 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     logger.debug(f"收到cmsg: {cmsg}")
     try:
         if conf().get("wechat_link_db"):
-            dbconfig = {
-                'user': conf().get("db_user"),
-                'password': conf().get("db_password"),
-                'host': conf().get("db_host"),
-                'port': conf().get("db_port"),
-                'database': conf().get("db_name"),
-            }
+            # dbconfig = {
+            #     'user': conf().get("db_user"),
+            #     'password': conf().get("db_password"),
+            #     'host': conf().get("db_host"),
+            #     'port': conf().get("db_port"),
+            #     'database': conf().get("db_name"),
+            # }
             # print(dbconfig)
             chatinfo = {
                 'msgid': cmsg.messageid,
                 'from_id': cmsg.from_user_id,
                 'from_nick': cmsg.from_user_nickname,
                 'msg': cmsg.content,
-                'timestamp': cmsg.create_time,
+                'timestamp': datetime.fromtimestamp(cmsg.create_time),
                 'msg_type': str(cmsg.ctype),
                 'isgroup': cmsg.is_group,
                 'to_id': cmsg.to_user_id,
@@ -142,8 +142,8 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
                 'group_name': cmsg.other_user_nickname,
                 'source_content': cmsg.sourcemsg
             }
-            # print(chatinfo)
-        operateMysql(dbconfig, chatinfo)
+            # print(f"timestamp的类型是：{type(cmsg.create_time)}")
+        operateMysql(chatinfo)
     except Exception as e:
         logger.error(e)
     return None

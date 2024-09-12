@@ -1,7 +1,6 @@
 # encoding:utf-8
 import json
 import threading
-
 import requests
 
 from bot.bot1 import Bot
@@ -11,6 +10,8 @@ from bridge.reply import Reply, ReplyType
 from common.log import logger
 from common import const
 from config import conf
+from channel.wechatnt.operateMysql import sqlQuery
+
 
 class DifyBot(Bot):
     def __init__(self):
@@ -95,11 +96,19 @@ class DifyBot(Bot):
         response_mode ='blocking'
         is_group = None
         #"from_group_display_name": "{context['msg'].self_display_name}",
+        from_user_id = context['msg'].from_user_id
+        other_user_id = context['msg'].other_user_id
+        record_time = context['msg'].create_time
+        ctype = context['msg'].ctype
+        # 执行查询
         logger.info(f"content={context['msg']}")
         if context['msg'].is_group == True:
             is_group = "isgroup"
         else:
             is_group = "isnotgroup"
+
+        sqlResults = sqlQuery(from_user_id,record_time,other_user_id,is_group,ctype)
+        logger.info(sqlResults)
         query_string = f"""{{
           "is_group": "{is_group}",
           "from_group_nickname": "{context['msg'].other_user_nickname}",
@@ -111,7 +120,7 @@ class DifyBot(Bot):
         # print(query_string)
         payload = self._get_payload(query_string, session, response_mode)
         # print("***********************handle_chatbot*最后传给dify的报文")
-        # print("guid:"context['msg'].guid)
+        # print(context['msg'].guid)
         # print(context['msg'].msg_id)
         # print(context['msg'].create_time)
         # print(context['msg'].ctype)

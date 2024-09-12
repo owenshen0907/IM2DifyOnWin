@@ -1,22 +1,30 @@
 import mysql.connector
+# from lxml.xmlerror import log_handler
 from mysql.connector import errorcode
-from datetime import datetime
+from datetime import datetime, timedelta
 from common.log import logger
 from lxml import etree
+from config import load_config, conf
 
-# 操作数据库
-def operateMysql (config,chatinfo):
-    # 创建数据库连接（持久连接）
+
+def get_dbconfig():
+    load_config()
     connect_config = {
-        'user': config['user'],
-        'password': config['password'],
-        'host': config['host'],
-        'port': config['port']
+        'user': conf().get("db_user"),
+        'password': conf().get("db_password"),
+        'host': conf().get("db_host"),
+        'port': conf().get("db_port"),
+        'database': conf().get("db_name"),
     }
+    return connect_config
+# 操作数据库
+def operateMysql (chatinfo):
+    # 创建数据库连接（持久连接）
+    connect_config = get_dbconfig()
     conn = mysql.connector.connect(**connect_config)
     cursor = conn.cursor()
     # 选择数据库
-    cursor.execute(f"USE {config['database']}")
+    # cursor.execute(f"USE {connect_config['database']}")
 
     def insert_into_private_chat(data):
         try:
@@ -35,8 +43,8 @@ def operateMysql (config,chatinfo):
         try:
             add_group_chat = (
                 "INSERT INTO group_chat "
-                "(msgid,group_id, group_name, group_alias, sender_id, sender_name, sender_group_name, msg_type, msg_content, img_path, attachment_path, link_url, record_time,replay2msgid, ext_field1, ext_field2) "
-                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s)"
+                "(msgid,host_wx_id, host_wx_name,group_id, group_name, group_alias, sender_id, sender_name, sender_group_name, msg_type, msg_content, img_path, attachment_path, link_url, record_time,replay2msgid, ext_field1, ext_field2) "
+                "VALUES (%s,%s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s)"
             )
             cursor.execute(add_group_chat, data)
             conn.commit()
@@ -46,7 +54,8 @@ def operateMysql (config,chatinfo):
 
     # 示例数据插入
     # 转换时间戳为时间
-    record_time = datetime.utcfromtimestamp(chatinfo['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+    # record_time = datetime.utcfromtimestamp(chatinfo['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+    # print(record_time)
     # 如果是图片则将content值为空，同时将图片路径填充到图片路径字段
     img_path = ''
     file_path= ''
@@ -95,12 +104,12 @@ def operateMysql (config,chatinfo):
 
     private_chat_data = (
         chatinfo['msgid'],chatinfo['to_id'],chatinfo['to_nick'],chatinfo['from_id'], chatinfo['from_nick'], '发生人的备注', chatinfo['msg_type'],
-        content, img_path, file_path, link_url,record_time,replay2msgid, 'Extension 1', 'Extension 2'
+        content, img_path, file_path, link_url,chatinfo['timestamp'],replay2msgid, 'Extension 1', 'Extension 2'
     )
 
     group_chat_data = (
-        chatinfo['msgid'],chatinfo['group_id'], chatinfo['group_name'], 'Group Alias', chatinfo['from_id'], chatinfo['from_nick'], '发生人的备注', chatinfo['msg_type'],
-        content, img_path, file_path, link_url,record_time,replay2msgid, chatinfo['to_id'], chatinfo['to_nick']
+        chatinfo['msgid'],chatinfo['to_id'], chatinfo['to_nick'],chatinfo['group_id'], chatinfo['group_name'], 'Group Alias', chatinfo['from_id'], chatinfo['from_nick'], '发生人的备注', chatinfo['msg_type'],
+        content, img_path, file_path, link_url,chatinfo['timestamp'],replay2msgid, 'Extension 1', 'Extension 2'
     )
 
     # 执行插入操作
@@ -117,6 +126,34 @@ def operateMysql (config,chatinfo):
     # 所有操作完成后关闭连接
     cursor.close()
     conn.close()
+
+def sqlQuery(from_id,record_time,other_user_id,isgroup,ctype):
+    config = get_dbconfig()
+    # 转换时间戳为时间
+    record_time = datetime.fromtimestamp(record_time).strftime('%Y-%m-%d %H:%M:%S')
+    # group_chat_log_sql = f"SELECT sender_id, sender_name, msg_type, msg_content, img_path, attachment_path, link_url, record_time, replay2msgid FROM group_chat WHERE group_id ='{other_user_id}' and sender_id='{from_id}' ORDER BY record_time DESC LIMIT 30"
+    # private_chat_log_sql = f"SELECT sender_id, sender_name, msg_type, msg_content, img_path, attachment_path, link_url,record_time, replay2msgid FROM private_chat WHERE sender_id ='{from_id}'  ORDER BY record_time DESC LIMIT 30"
+    group_quote_sql = f"SELECT msg_content, img_path, attachment_path, link_url, replay2msgid from group_chat WHERE sender_id ='{from_id}' and record_time='{record_time}'and msg_type='{ctype}' and group_id='{other_user_id}'"
+    logger.info(f"查询语句: {group_quote_sql}")
+    try:
+        conn = mysql.connector.connect(**config)
+        cursor = conn.cursor()
+        # if isgroup == "isnotgroup":
+        #     sql = private_chat_log_sql
+        # else:
+        #     sql = group_chat_log_sql
+        # chatlog=cursor.execute(sql).fetchall()
+        # logger.debug(f"聊天历史记录查询成功: {chatlog}")
+        if isgroup == "isgroup":
+            cursor.execute(group_quote_sql)
+            quotechat=cursor.fetchall()
+            logger.debug(f"引用消息查询成功: {quotechat}")
+            return quotechat
+    except mysql.connector.Error as err:
+        logger.error(f"查询失败: {err}")
+    finally:
+        cursor.close()
+        conn.close()
 
 
 

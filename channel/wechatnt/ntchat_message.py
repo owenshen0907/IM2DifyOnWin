@@ -218,8 +218,11 @@ class NtchatMessage(ChatMessage):
                 xmlContent = data["raw_msg"]
                 root = ET.XML(xmlContent)
                 appmsg = root.find("appmsg")
+                # print(f"appmsg:{appmsg.text}")
                 msg = appmsg.find("title")
+                # print(f"msg:{msg.text}")
                 type = appmsg.find("type")
+                # print(f"type:{type.text}")
                 if type.text == "51":  # 视频号视频
                     self.content = xmlContent
                     self.ctype = ContextType.WECHAT_VIDEO
@@ -268,7 +271,16 @@ class NtchatMessage(ChatMessage):
                             if self.to_user_id is None:
                                 self.to_user_id =self.from_user_id
                             print(
-                                f"【{self.actual_user_nickname}】 ID:{self.from_user_id}  引用了 【{self.to_user_nickname}】 ID:{self.to_user_id} 的信息并回复 【{self.content}】")
+                                f"【群聊】【{self.actual_user_nickname}】 WeChatID:{self.from_user_id}  引用了 【{self.to_user_nickname}】 ID:{self.to_user_id} 的信息并回复 【{self.content}】")
+                        else:
+                            self.content = msg.text
+                            self.to_user_id = refwxid.text
+                            self.ctype = ContextType.QUOTE
+                            self.to_user_nickname =refname_text
+                            if self.to_user_id is None:
+                                self.to_user_id =self.from_user_id
+                            print(
+                                f"【单聊】 WeChatID:{self.from_user_id}  引用了 【{self.to_user_nickname}】 ID:{self.to_user_id} 的信息并回复 【{self.content}】")
                     else:
                         pass
 
@@ -318,7 +330,7 @@ class NtchatMessage(ChatMessage):
                 else:
                     logger.error("群聊消息中没有找到 conversation_id 或 room_wxid")
 
-            logger.debug(f"WechatMessage has be en successfully instantiated with message id: {self.msg_id}")
+            logger.debug(f"WechatMessage has be en successfully instantiated with from_user_id: {self.msg_id}")
         except Exception as e:
             logger.error(f"在 WechatMessage 的初始化过程中出现错误：{e}")
             raise e
