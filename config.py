@@ -164,6 +164,10 @@ available_setting = {
     "db_password": "",  # 数据库密码
     "db_port": "3306",  # 数据库端口
     "db_name": "chat_record",  # 数据库名称
+    # 文件网络存储配置
+    "file_host_path": "C://Users\Administrator\Documents\WeChatfileWeb",
+    "file_web_host": "127.0.0.1",  # 文件存储地址
+    "file_web_port": "80",  # 文件存储端口
     # 插件配置
     "plugin_trigger_prefix": "$",  # 规范插件提供聊天相关指令的前缀，建议不要和管理员指令前缀"#"冲突
     # 是否使用全局插件配置

@@ -97,7 +97,8 @@ class DifyBot(Bot):
         is_group = None
         #"from_group_display_name": "{context['msg'].self_display_name}",
         from_user_id = context['msg'].from_user_id
-        other_user_id = context['msg'].other_user_id
+        to_user_id = context['msg'].to_user_id
+        group_id = context['msg'].other_user_id
         record_time = context['msg'].create_time
         ctype = context['msg'].ctype
         # 执行查询
@@ -106,15 +107,19 @@ class DifyBot(Bot):
             is_group = "isgroup"
         else:
             is_group = "isnotgroup"
+        #quote_conent是引用的消息原文(有可能为空)，historyQuery是历史消息.
+        quote_content,quote_type, historyQuery = sqlQuery(from_user_id,record_time,to_user_id,group_id,is_group,ctype)
+        # "historyQuery": "{historyQuery}"
 
-        sqlResults = sqlQuery(from_user_id,record_time,other_user_id,is_group,ctype)
-        logger.info(sqlResults)
         query_string = f"""{{
           "is_group": "{is_group}",
           "from_group_nickname": "{context['msg'].other_user_nickname}",
           "from_user_id": "{context['msg'].from_user_id}",
           "from_user_nickname": "{context['msg'].from_user_nickname}",
-          "query": "{query}"
+          "query": "{query}",
+          "quote_content": "{quote_content}",
+          "quote_type": "{quote_type}",
+          "history": "{historyQuery}"
         }}"""
         logger.debug(f"[DIFY] query_string={query_string}")
         # print(query_string)

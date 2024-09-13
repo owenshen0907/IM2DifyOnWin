@@ -128,6 +128,7 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
             #     'database': conf().get("db_name"),
             # }
             # print(dbconfig)
+            #to_wxid是私聊是宿主发送的对象
             chatinfo = {
                 'msgid': cmsg.messageid,
                 'from_id': cmsg.from_user_id,
@@ -137,6 +138,7 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
                 'msg_type': str(cmsg.ctype),
                 'isgroup': cmsg.is_group,
                 'to_id': cmsg.to_user_id,
+                'to_wxid': message['data']['to_wxid'],
                 'to_nick': cmsg.to_user_nickname,
                 'group_id': cmsg.other_user_id,
                 'group_name': cmsg.other_user_nickname,
