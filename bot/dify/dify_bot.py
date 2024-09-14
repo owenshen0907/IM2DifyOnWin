@@ -111,8 +111,8 @@ class DifyBot(Bot):
         #quote_conent是引用的消息原文(有可能为空)，historyQuery是历史消息.
         query,quote_content,quote_type, historyQuery = sqlQuery(query,from_user_id,record_time,to_user_id,group_id,is_group,ctype)
 
-        sqlResults = sqlQuery(from_user_id,record_time,other_user_id,is_group,ctype)
-        logger.info(sqlResults)
+        # sqlResults = sqlQuery(from_user_id,record_time,other_user_id,is_group,ctype)
+        # logger.info(sqlResults)
         query_string = f"""{{
           "is_group": "{is_group}",
           "from_group_nickname": "{context['msg'].other_user_nickname}",
