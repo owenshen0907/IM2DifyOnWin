@@ -120,14 +120,7 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     logger.debug(f"收到cmsg: {cmsg}")
     try:
         if conf().get("wechat_link_db"):
-            # dbconfig = {
-            #     'user': conf().get("db_user"),
-            #     'password': conf().get("db_password"),
-            #     'host': conf().get("db_host"),
-            #     'port': conf().get("db_port"),
-            #     'database': conf().get("db_name"),
-            # }
-            # print(dbconfig)
+            #to_wxid是私聊是宿主发送的对象
             chatinfo = {
                 'msgid': cmsg.messageid,
                 'from_id': cmsg.from_user_id,
@@ -137,6 +130,7 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
                 'msg_type': str(cmsg.ctype),
                 'isgroup': cmsg.is_group,
                 'to_id': cmsg.to_user_id,
+                'to_wxid': message['data']['to_wxid'],
                 'to_nick': cmsg.to_user_nickname,
                 'group_id': cmsg.other_user_id,
                 'group_name': cmsg.other_user_nickname,
@@ -238,6 +232,7 @@ class NtchatChannel(ChatChannel):
         else:
             logger.debug("[WX]receive msg: {}, cmsg={}".format(cmsg.content, cmsg))
         context = self._compose_context(cmsg.ctype, cmsg.content, isgroup=False, msg=cmsg)
+        logger.info(f"调用处理消息的方法后面是处理后的私聊content：{context}")
         if context:
             self.produce(context)
 
@@ -281,7 +276,7 @@ class NtchatChannel(ChatChannel):
         else:
             logger.debug("[WX]receive group msg: {}".format(cmsg.content))
         context = self._compose_context(cmsg.ctype, cmsg.content, isgroup=True, msg=cmsg)
-        # print("调用处理消息的方法后面是处理后的content：")
+        logger.info(f"调用处理消息的方法后面是处理后的群聊content：{context}")
         # print(context)
         if context:
             self.produce(context)

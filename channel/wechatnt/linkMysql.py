@@ -32,6 +32,7 @@ def link_db(config):
     private_chat_table = """
     CREATE TABLE IF NOT EXISTS private_chat (
         msgid VARCHAR(100)  PRIMARY KEY,
+        receiver_id VARCHAR(50) NOT NULL,
         host_wx_id VARCHAR(50) NOT NULL,
         host_wx_name VARCHAR(100),
         sender_id VARCHAR(50) NOT NULL,

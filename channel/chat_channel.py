@@ -90,12 +90,12 @@ class ChatChannel(Channel):
 
             logger.debug(f"最终的会话ID：{context['session_id']}")
             logger.debug(f"最终的接收者ID：{context['receiver']}")
-            e_context = PluginManager().emit_event(
-                EventContext(Event.ON_RECEIVE_MESSAGE, {"channel": self, "context": context}))
-            context = e_context["context"]
+            # e_context = PluginManager().emit_event(
+            #     EventContext(Event.ON_RECEIVE_MESSAGE, {"channel": self, "context": context}))
+            # context = e_context["context"]
             # print("***************************这里是要传给大模型的content"+content)
-            if e_context.is_pass() or context is None:
-                return context
+            # if e_context.is_pass() or context is None:
+            #     return context
 
             if cmsg.from_user_id == self.user_id and not config.get("trigger_by_self", False):
                 logger.debug("[WX]self message skipped")
@@ -103,12 +103,6 @@ class ChatChannel(Channel):
 
         # 消息内容匹配过程，并处理content
         if ctype == ContextType.TEXT:
-            # if first_in and "」\n- - - - - - -" in content:  # 初次匹配 过滤引用消息
-            #     start_idx = content.find("「") + 1  # 找到「的位置
-            #     end_idx = content.find("：", start_idx)  # 找到：的位置
-            #     result = content[:start_idx] + content[end_idx+1:]  # 将两部分字符串拼接起来
-            #     content=result
-                #print(content)  # 输出结果
 
             if context.get("isgroup", False):  # 群聊
                 match_prefix = check_prefix(content, conf().get("group_chat_prefix"))

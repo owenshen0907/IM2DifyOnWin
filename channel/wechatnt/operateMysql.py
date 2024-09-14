@@ -5,9 +5,10 @@ from datetime import datetime, timedelta
 from common.log import logger
 from lxml import etree
 from config import load_config, conf
-
-
-def get_dbconfig():
+import shutil
+import os
+import re
+def get_config():
     load_config()
     connect_config = {
         'user': conf().get("db_user"),
@@ -16,11 +17,16 @@ def get_dbconfig():
         'port': conf().get("db_port"),
         'database': conf().get("db_name"),
     }
-    return connect_config
+    file_web_config = {
+        "file_host_path": conf().get("file_host_path"),
+        "file_web_host":conf().get("file_web_host"),
+        "file_web_port":conf().get("file_web_port"),
+    }
+    return connect_config, file_web_config
 # 操作数据库
 def operateMysql (chatinfo):
     # 创建数据库连接（持久连接）
-    connect_config = get_dbconfig()
+    connect_config,file_web_config = get_config()
     conn = mysql.connector.connect(**connect_config)
     cursor = conn.cursor()
     # 选择数据库
@@ -30,8 +36,8 @@ def operateMysql (chatinfo):
         try:
             add_private_chat = (
                 "INSERT INTO private_chat "
-                "(msgid,host_wx_id, host_wx_name, sender_id, sender_name, sender_remark, msg_type, msg_content, img_path, attachment_path, link_url, record_time,replay2msgid, ext_field1, ext_field2) "
-                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)"
+                "(msgid,receiver_id,host_wx_id, host_wx_name, sender_id, sender_name, sender_remark, msg_type, msg_content, img_path, attachment_path, link_url, record_time,replay2msgid, ext_field1, ext_field2) "
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s)"
             )
             cursor.execute(add_private_chat, data)
             conn.commit()
@@ -103,7 +109,7 @@ def operateMysql (chatinfo):
 
 
     private_chat_data = (
-        chatinfo['msgid'],chatinfo['to_id'],chatinfo['to_nick'],chatinfo['from_id'], chatinfo['from_nick'], '发生人的备注', chatinfo['msg_type'],
+        chatinfo['msgid'],chatinfo['to_wxid'],chatinfo['to_id'],chatinfo['to_nick'],chatinfo['from_id'], chatinfo['from_nick'], '发生人的备注', chatinfo['msg_type'],
         content, img_path, file_path, link_url,chatinfo['timestamp'],replay2msgid, 'Extension 1', 'Extension 2'
     )
 
@@ -127,33 +133,111 @@ def operateMysql (chatinfo):
     cursor.close()
     conn.close()
 
-def sqlQuery(from_id,record_time,other_user_id,isgroup,ctype):
-    config = get_dbconfig()
+def sqlQuery(query,from_id,record_time,to_id,group_id,isgroup,ctype):
+    db_config,file_web_config = get_config()
+    query = infoClean(query)
+    quote_content = None
     # 转换时间戳为时间
     record_time = datetime.fromtimestamp(record_time).strftime('%Y-%m-%d %H:%M:%S')
-    # group_chat_log_sql = f"SELECT sender_id, sender_name, msg_type, msg_content, img_path, attachment_path, link_url, record_time, replay2msgid FROM group_chat WHERE group_id ='{other_user_id}' and sender_id='{from_id}' ORDER BY record_time DESC LIMIT 30"
-    # private_chat_log_sql = f"SELECT sender_id, sender_name, msg_type, msg_content, img_path, attachment_path, link_url,record_time, replay2msgid FROM private_chat WHERE sender_id ='{from_id}'  ORDER BY record_time DESC LIMIT 30"
-    group_quote_sql = f"SELECT msg_content, img_path, attachment_path, link_url, replay2msgid from group_chat WHERE sender_id ='{from_id}' and record_time='{record_time}'and msg_type='{ctype}' and group_id='{other_user_id}'"
-    logger.info(f"查询语句: {group_quote_sql}")
     try:
-        conn = mysql.connector.connect(**config)
+        conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
-        # if isgroup == "isnotgroup":
-        #     sql = private_chat_log_sql
-        # else:
-        #     sql = group_chat_log_sql
-        # chatlog=cursor.execute(sql).fetchall()
-        # logger.debug(f"聊天历史记录查询成功: {chatlog}")
+        #生成生成history内容，查询近50条文本对话的记录
+        historySql = ''
         if isgroup == "isgroup":
-            cursor.execute(group_quote_sql)
-            quotechat=cursor.fetchall()
-            logger.debug(f"引用消息查询成功: {quotechat}")
-            return quotechat
+            historySql = f"SELECT sender_id, msg_content from group_chat WHERE group_id ='{group_id}' AND msg_content <> '' AND record_time <> '{record_time}' ORDER BY record_time ASC LIMIT 20"
+            imgHistorySql = f"SELECT img_path FROM ( SELECT * FROM group_chat ORDER BY record_time DESC LIMIT 10) AS last10 WHERE group_id = '{group_id}' AND msg_type = 'IMAGE'"
+        else:
+            historySql = f"SELECT sender_id , msg_content ,receiver_id from private_chat WHERE msg_content <>''AND record_time <> '{record_time}' AND  (sender_id='{from_id}' AND receiver_id='{to_id}') or  (sender_id='{to_id}'AND receiver_id='{from_id}')  ORDER BY record_time ASC LIMIT 20"
+            imgHistorySql = f"SELECT img_path FROM ( SELECT * FROM group_chat ORDER BY record_time DESC LIMIT 10) AS last10 WHERE group_id = '{group_id}' AND msg_type = 'IMAGE'"
+        cursor.execute(historySql)
+        historychat = cursor.fetchall()
+        logger.debug(f"读取到历史记录: {historychat}")
+        historyQuery = historyInfo(historychat,isgroup)
+
+        if intent_recognition(query):
+            cursor.execute(imgHistorySql)
+            imgPath = cursor.fetchall()
+            logger.debug(f"读取图片的历史记录: {imgPath}")
+            if imgPath:
+                logger.debug(f"读取到历史记录: {imgPath}")
+                quote_content = getImgUrl(imgPath[0][0], file_web_config["file_host_path"],
+                                          file_web_config["file_web_host"])
+
+
+        #如果是引用消息，则在查询时只根据引用的消息进行推理
+        if ctype == "QUOTE":
+            # 引用消息时，当前消息内容，和被引用消息的msgid查询
+            group_quote_sql = f"SELECT msg_content, replay2msgid from group_chat WHERE sender_id ='{from_id}' and record_time='{record_time}'and msg_type='{ctype}' and group_id='{group_id}'"
+            logger.info(f"查询语句: {group_quote_sql}")
+            if isgroup == "isgroup":#群聊
+                cursor.execute(group_quote_sql)
+                quotechat = cursor.fetchall()
+                msg_content, replay2msgid = quotechat[0]
+                logger.debug(f"当前消息的内容: {msg_content},引用消息的msgid:{replay2msgid}")
+                #查询被引用消息的内容
+                group_quote_sourceinfo_sql = f"SELECT msg_type, msg_content, img_path, attachment_path, link_url from group_chat WHERE msgid ='{replay2msgid}'"
+                cursor.execute(group_quote_sourceinfo_sql)
+                groupsourcechat = cursor.fetchall()
+                sourcemsg_type, sourcemsg_content, img_path, attachment_path, link_url = groupsourcechat[0]
+                logger.debug(f"读取到被引用消息的源内容: {sourcemsg_content},img_path:{img_path},attachment_path:{attachment_path},link_url:{link_url}")
+                #消息处理
+                quote_content = quoteMsgExe(sourcemsg_type, msg_content, img_path, attachment_path,link_url,file_web_config)
+                return query, quote_content,sourcemsg_type ,historyQuery
+        return query, quote_content,None, historyQuery
     except mysql.connector.Error as err:
         logger.error(f"查询失败: {err}")
     finally:
         cursor.close()
         conn.close()
 
+def quoteMsgExe(ctype,msg_content, img_path, attachment_path, link,file_web_config):
+    if ctype == "TEXT":#如果被引用的是文本消息则直接返回msg_content
+        return ctype,msg_content
+    if ctype == "IMAGE":#如果被引用的是图片消息,则将图片负责到网站目录下，并返回图片的访问网址
+        if img_path:
+            shutil.copy(img_path, file_web_config['file_host_path'])
+            img_name = os.path.basename(img_path)
+            img_web_path = file_web_config['file_web_path']+img_name
+        return ctype,img_web_path
+    if ctype == "SHARE":#如果被引用的是分享消息，则返回分享的链接地址
+        return ctype,link
+    if ctype == "VOICE" or ctype == "FILE":#如果被引用的是语音消息或文件消息，则返回文件的访问地址
+        return ctype,attachment_path
+
+
+def historyInfo(hostorychat,isgroup):
+    if isgroup == "isgroup":
+        result = "|".join([f"{name}：{message}" for name, message in hostorychat])
+        result = infoClean(result)
+        logger.debug(f"历史记录: {result}")
+        # return result.replace('\n', '')
+        return result
+    else:
+        result = "\n".join([f"{name}：{message}" for name, message, _ in hostorychat])
+        result = infoClean(result)
+        logger.debug(f"历史记录: {result}")
+        # return result.replace('\n', '')
+        return result
+def getImgUrl(img_path,targetPath,web_host):
+    shutil.copy(img_path, targetPath)
+    img_name = os.path.basename(img_path)
+    img_url = web_host + img_name
+    return img_url
+
+def infoClean(info):
+    s = info.replace('\\', '\\\\')
+    # 然后，将已正确转义的转回单反斜杠（如 \n，\t 等）
+    s = re.sub(r'\\\\(n|t|r|b|f|\"|\'|\\)', r'\\\1', s)
+    s = s.replace('\n', '').replace('"', '\\"')
+    return s
+
+def intent_recognition(text):
+    # 定义与“分析图片”相关的关键词列表
+    keywords = ["分析图片", "识别图像", "分析照片", "图像分析", "图片分析", "照片识别"]
+    for keyword in keywords:
+        if keyword in text:
+            return True
+    return False
 
 

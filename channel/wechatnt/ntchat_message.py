@@ -102,6 +102,7 @@ class NtchatMessage(ChatMessage):
             #消息唯一标识
             self.messageid = wechat_msg['data'].get('msgid')
             self.sourcemsg = wechat_msg['data'].get('raw_msg')
+            self.to_wxid = wechat_msg['data'].get('to_wxid')
 
             # 获取一些可能多次使用的值
             current_dir = os.getcwd()
