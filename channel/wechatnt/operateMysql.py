@@ -22,11 +22,16 @@ def get_config():
         "file_web_host":conf().get("file_web_host"),
         "file_web_port":conf().get("file_web_port"),
     }
-    return connect_config, file_web_config
+    intent_config = {
+        "img_intent": conf().get("img_intent"),
+        "generate_img_intent": conf().get("generate_img_intent"),
+        "web_search_intent": conf().get("web_search_intent"),
+    }
+    return connect_config, file_web_config,intent_config
 # 操作数据库
 def operateMysql (chatinfo):
     # 创建数据库连接（持久连接）
-    connect_config,file_web_config = get_config()
+    connect_config,file_web_config,_ = get_config()
     conn = mysql.connector.connect(**connect_config)
     cursor = conn.cursor()
     # 选择数据库
@@ -134,9 +139,10 @@ def operateMysql (chatinfo):
     conn.close()
 
 def sqlQuery(query,from_id,record_time,to_id,group_id,isgroup,ctype):
-    db_config,file_web_config = get_config()
+    db_config,file_web_config,intent_config = get_config()
     query = infoClean(query)
-    quote_content = None
+    quote_content = ''
+    quote_type = ''
     # 转换时间戳为时间
     record_time = datetime.fromtimestamp(record_time).strftime('%Y-%m-%d %H:%M:%S')
     try:
@@ -153,9 +159,14 @@ def sqlQuery(query,from_id,record_time,to_id,group_id,isgroup,ctype):
         cursor.execute(historySql)
         historychat = cursor.fetchall()
         logger.debug(f"读取到历史记录: {historychat}")
+        # 拼接历史记录
         historyQuery = historyInfo(historychat,isgroup)
-
-        if intent_recognition(query):
+        # 判断非引用消息时，判断否触发特定功能：图片分析，文生图，联网搜索。并将相关类型传递给引用消息的类型，在dify中根据引用消息的类型，走不同功能分支
+        # 当来聊天内容少于等于20字的时候，通过关键词判断是否触发特定功能。超过20字则直接交给模型判断。
+        if count_chinese_characters(query) <= 20:
+            quote_type = intent_recognition(query, intent_config)
+        if quote_type == 'IMAGE':
+            #如果意图判断需要分析图片，则通过历史记录查找10条对话记录内容的最新一张图片进行分析。未找到图片，则重置引用消息类型未空
             cursor.execute(imgHistorySql)
             imgPath = cursor.fetchall()
             logger.debug(f"读取图片的历史记录: {imgPath}")
@@ -163,7 +174,14 @@ def sqlQuery(query,from_id,record_time,to_id,group_id,isgroup,ctype):
                 logger.debug(f"读取到历史记录: {imgPath}")
                 quote_content = getImgUrl(imgPath[0][0], file_web_config["file_host_path"],
                                           file_web_config["file_web_host"])
-
+                print("执行了图片正常读取的方法")
+            else:
+                #如果历史记录未查到图片
+                quote_type = 'TEXT'
+        if quote_type == 'GENIMG':
+            pass
+        if quote_type == 'Web_Search':
+            pass
 
         #如果是引用消息，则在查询时只根据引用的消息进行推理
         if ctype == "QUOTE":
@@ -184,7 +202,7 @@ def sqlQuery(query,from_id,record_time,to_id,group_id,isgroup,ctype):
                 #消息处理
                 quote_content = quoteMsgExe(sourcemsg_type, msg_content, img_path, attachment_path,link_url,file_web_config)
                 return query, quote_content,sourcemsg_type ,historyQuery
-        return query, quote_content,None, historyQuery
+        return query, quote_content,quote_type, historyQuery
     except mysql.connector.Error as err:
         logger.error(f"查询失败: {err}")
     finally:
@@ -232,12 +250,44 @@ def infoClean(info):
     s = s.replace('\n', '').replace('"', '\\"')
     return s
 
-def intent_recognition(text):
-    # 定义与“分析图片”相关的关键词列表
-    keywords = ["分析图片", "识别图像", "分析照片", "图像分析", "图片分析", "照片识别"]
-    for keyword in keywords:
+def intent_recognition(text,intent_config):
+    # 意图识别
+    # 通过配置文件设置的图像，联网搜索，文生图等的关键词列表。判断用户请求是否直接调用以上功能。
+    # 后续文件分析，视频生成，url分析等。全部都在此方法下面进行处理
+    isImgIntent = False
+    isGenImgIntent = False
+    isWebSearchIntent = False
+    # print(intent_config)
+    imgKeywords = intent_config['img_intent']
+    generateImgKeywords = intent_config['generate_img_intent']
+    webSearchKeywords = intent_config['web_search_intent']
+    for keyword in imgKeywords:
+        print(f"img意图：{keyword}")
         if keyword in text:
-            return True
-    return False
+            isImgIntent = True
+    for keyword in generateImgKeywords:
+        print(f"genimg意图：{keyword}")
+        if keyword in text:
+            isGenImgIntent = True
 
+    for keyword in webSearchKeywords:
+        print(f"websearch意图：{keyword}")
+        if keyword in text:
+            isWebSearchIntent = True
 
+    if isImgIntent and not isGenImgIntent and not isWebSearchIntent:
+        return "IMAGE"
+    elif not isImgIntent and isGenImgIntent and not isWebSearchIntent:
+        return "GENIMG"
+    elif not isImgIntent and not isGenImgIntent and isWebSearchIntent:
+        return "Web_Search"
+    else:
+        return "TEXT"
+
+def count_chinese_characters(s):
+    #输入文本的汉字数量
+    count = 0
+    for char in s:
+        if '\u4e00' <= char <= '\u9fff':
+            count += 1
+    return count

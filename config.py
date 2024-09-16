@@ -168,6 +168,13 @@ available_setting = {
     "file_host_path": "C://Users\Administrator\Documents\WeChatfileWeb",
     "file_web_host": "127.0.0.1",  # 文件存储地址
     "file_web_port": "80",  # 文件存储端口
+    # 意图识别关键词
+    "img_intent":["分析图片", "识别图像", "分析照片", "图像分析", "图片分析", "照片识别"],#图片分析
+    "generate_img_intent":[],#文本生成图片
+    "url_intent":[""],#url分析
+    "file_intent":[""],#文件分析
+    "video_intent":[""],#视频分析
+    "web_search_intent":[""],#联网搜索
     # 插件配置
     "plugin_trigger_prefix": "$",  # 规范插件提供聊天相关指令的前缀，建议不要和管理员指令前缀"#"冲突
     # 是否使用全局插件配置

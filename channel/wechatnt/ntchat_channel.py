@@ -120,7 +120,7 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     logger.debug(f"收到cmsg: {cmsg}")
     try:
         if conf().get("wechat_link_db"):
-            #to_wxid是私聊是宿主发送的对象
+            #to_wxid是私聊时宿主发送的对象
             chatinfo = {
                 'msgid': cmsg.messageid,
                 'from_id': cmsg.from_user_id,
