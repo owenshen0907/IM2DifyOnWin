@@ -149,13 +149,19 @@ class DifyBot(Bot):
             logger.warn(error_info)
             return None, error_info
         rsp_data = response.json()
+        print(rsp_data)
         logger.debug("[DIFY] usage {}".format(rsp_data.get('metadata', {}).get('usage', 0)))
-        # TODO: 处理返回的图片文件
-        reply = Reply(ReplyType.TEXT, rsp_data['answer'])
+        # 定义返回的内容时纯文本还是图片。
+        if 'image_gen' in rsp_data['answer']:
+            reply = Reply(ReplyType.IMAGE_URL, rsp_data['answer'])
+            return reply, None
+        else:
+            reply = Reply(ReplyType.TEXT, rsp_data['answer'])
+            return reply, None
         # 设置dify conversation_id, 依靠dify管理上下文
         if session.get_conversation_id() == '':
             session.set_conversation_id(rsp_data['conversation_id'])
-        return reply, None
+
 
     def _handle_agent(self, query: str, session: DifySession, context: Context):
         # TODO: 获取response抽取为公共函数
