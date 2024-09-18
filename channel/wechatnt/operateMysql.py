@@ -154,7 +154,7 @@ def sqlQuery(query,from_id,record_time,to_id,group_id,isgroup,ctype):
         historySql = ''
         if isgroup == "isgroup":
             historySql = f"SELECT sender_id, msg_content from group_chat WHERE group_id ='{group_id}' AND msg_content <> '' AND record_time <> '{record_time}' AND record_time >= '{history_start_time}' ORDER BY record_time ASC LIMIT 20"
-            imgHistorySql = f"SELECT img_path FROM ( SELECT * FROM group_chat ORDER BY record_time DESC LIMIT 10) AS last10 WHERE group_id = '{group_id}' AND msg_type = 'IMAGE' LIMIT 1"
+            imgHistorySql = f"SELECT img_path FROM ( SELECT * FROM group_chat WHERE group_id = '{group_id}' ORDER BY record_time DESC LIMIT 10) AS last10 WHERE msg_type = 'IMAGE' LIMIT 1"
         else:
             historySql = f"SELECT sender_id , msg_content ,receiver_id from private_chat WHERE msg_content <>''AND record_time <> '{record_time}' AND record_time >= '{history_start_time}' AND  (sender_id='{from_id}' AND receiver_id='{to_id}') or  (sender_id='{to_id}'AND receiver_id='{from_id}')  ORDER BY record_time ASC LIMIT 20"
             imgHistorySql = f"SELECT img_path FROM ( SELECT * FROM private_chat WHERE (sender_id='{from_id}' AND receiver_id='{to_id}') or  (sender_id='{to_id}'AND receiver_id='{from_id}')  ORDER BY record_time DESC LIMIT 10) AS last10 WHERE msg_type = 'IMAGE' LIMIT 1"
