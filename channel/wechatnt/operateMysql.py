@@ -154,14 +154,15 @@ def sqlQuery(query,from_id,record_time,to_id,group_id,isgroup,ctype):
         historySql = ''
         if isgroup == "isgroup":
             historySql = f"SELECT sender_id, msg_content from group_chat WHERE group_id ='{group_id}' AND msg_content <> '' AND record_time <> '{record_time}' AND record_time >= '{history_start_time}' ORDER BY record_time ASC LIMIT 20"
-            imgHistorySql = f"SELECT img_path FROM ( SELECT * FROM group_chat ORDER BY record_time DESC LIMIT 10) AS last10 WHERE group_id = '{group_id}' AND msg_type = 'IMAGE'"
+            imgHistorySql = f"SELECT img_path FROM ( SELECT * FROM group_chat ORDER BY record_time DESC LIMIT 10) AS last10 WHERE group_id = '{group_id}' AND msg_type = 'IMAGE' LIMIT 1"
         else:
             historySql = f"SELECT sender_id , msg_content ,receiver_id from private_chat WHERE msg_content <>''AND record_time <> '{record_time}' AND record_time >= '{history_start_time}' AND  (sender_id='{from_id}' AND receiver_id='{to_id}') or  (sender_id='{to_id}'AND receiver_id='{from_id}')  ORDER BY record_time ASC LIMIT 20"
-            imgHistorySql = f"SELECT img_path FROM ( SELECT * FROM group_chat ORDER BY record_time DESC LIMIT 10) AS last10 WHERE group_id = '{group_id}' AND msg_type = 'IMAGE'"
+            imgHistorySql = f"SELECT img_path FROM ( SELECT * FROM private_chat WHERE (sender_id='{from_id}' AND receiver_id='{to_id}') or  (sender_id='{to_id}'AND receiver_id='{from_id}')  ORDER BY record_time DESC LIMIT 10) AS last10 WHERE msg_type = 'IMAGE' LIMIT 1"
         logger.debug(f"查询近一小时的聊天记录sql语句: {historySql}")
+        logger.debug(f"查询近一小时的图片记录sql语句: {imgHistorySql}")
         cursor.execute(historySql)
         historychat = cursor.fetchall()
-        logger.debug(f"读取到历史记录: {historychat}")
+        # logger.debug(f"读取到历史记录: {historychat}")
         # 拼接历史记录
         historyQuery = historyInfo(historychat,isgroup)
         # 判断非引用消息时，判断否触发特定功能：图片分析，文生图，联网搜索。并将相关类型传递给引用消息的类型，在dify中根据引用消息的类型，走不同功能分支
