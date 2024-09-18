@@ -145,28 +145,34 @@ def sqlQuery(query,from_id,record_time,to_id,group_id,isgroup,ctype):
     quote_type = ''
     # 转换时间戳为时间
     record_time = datetime.fromtimestamp(record_time).strftime('%Y-%m-%d %H:%M:%S')
+    dt_record_time = datetime.strptime(record_time, '%Y-%m-%d %H:%M:%S')
+    history_start_time = (dt_record_time - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
         #生成生成history内容，查询近50条文本对话的记录
         historySql = ''
         if isgroup == "isgroup":
-            historySql = f"SELECT sender_id, msg_content from group_chat WHERE group_id ='{group_id}' AND msg_content <> '' AND record_time <> '{record_time}' ORDER BY record_time ASC LIMIT 20"
+            historySql = f"SELECT sender_id, msg_content from group_chat WHERE group_id ='{group_id}' AND msg_content <> '' AND record_time <> '{record_time}' AND record_time >= '{history_start_time}' ORDER BY record_time ASC LIMIT 20"
             imgHistorySql = f"SELECT img_path FROM ( SELECT * FROM group_chat ORDER BY record_time DESC LIMIT 10) AS last10 WHERE group_id = '{group_id}' AND msg_type = 'IMAGE'"
         else:
-            historySql = f"SELECT sender_id , msg_content ,receiver_id from private_chat WHERE msg_content <>''AND record_time <> '{record_time}' AND  (sender_id='{from_id}' AND receiver_id='{to_id}') or  (sender_id='{to_id}'AND receiver_id='{from_id}')  ORDER BY record_time ASC LIMIT 20"
+            historySql = f"SELECT sender_id , msg_content ,receiver_id from private_chat WHERE msg_content <>''AND record_time <> '{record_time}' AND record_time >= '{history_start_time}' AND  (sender_id='{from_id}' AND receiver_id='{to_id}') or  (sender_id='{to_id}'AND receiver_id='{from_id}')  ORDER BY record_time ASC LIMIT 20"
             imgHistorySql = f"SELECT img_path FROM ( SELECT * FROM group_chat ORDER BY record_time DESC LIMIT 10) AS last10 WHERE group_id = '{group_id}' AND msg_type = 'IMAGE'"
+        logger.debug(f"查询近一小时的聊天记录sql语句: {historySql}")
         cursor.execute(historySql)
         historychat = cursor.fetchall()
         logger.debug(f"读取到历史记录: {historychat}")
         # 拼接历史记录
         historyQuery = historyInfo(historychat,isgroup)
         # 判断非引用消息时，判断否触发特定功能：图片分析，文生图，联网搜索。并将相关类型传递给引用消息的类型，在dify中根据引用消息的类型，走不同功能分支
-        # 当来聊天内容少于等于20字的时候，通过关键词判断是否触发特定功能。超过20字则直接交给模型判断。
-        if count_chinese_characters(query) <= 20:
+        # 当来聊天内容少于等于20字的时候，通过关键词判断是否触发特定功能。超过50字则直接交给模型判断。
+        if count_chinese_characters(query) <= 50:
             quote_type = intent_recognition(query, intent_config)
-        if quote_type == 'IMAGE':
-            #如果意图判断需要分析图片，则通过历史记录查找10条对话记录内容的最新一张图片进行分析。未找到图片，则重置引用消息类型未空
+        if quote_type == 'IMAGE' or quote_type == 'TEXT':
+            #意图判断需要分析图片或者没有识别。，都将历史记录的10条对话记录内容的最新一张图片放到quote_content里。
+            # 未找到图片，则重置引用消息类型为TEXT。
+            # 在意图识别不是分析图片的情况下，如果近10条记录有图片，也先放进去，待大模型再次判断，是否是图片分析，是的话，则可以直接取到图片
+            # 后面可以基于此机制，把视频，文件，等可能需要大模型处理的内容都预先放进来，待大模型判断需要分析相关内容的时候，就都可以直接取用
             cursor.execute(imgHistorySql)
             imgPath = cursor.fetchall()
             logger.debug(f"读取图片的历史记录: {imgPath}")
@@ -174,7 +180,7 @@ def sqlQuery(query,from_id,record_time,to_id,group_id,isgroup,ctype):
                 logger.debug(f"读取到历史记录: {imgPath}")
                 quote_content = getImgUrl(imgPath[0][0], file_web_config["file_host_path"],
                                           file_web_config["file_web_host"])
-                print("执行了图片正常读取的方法")
+                logger.debug("10条历史记录中有图片,将图片放到了引用消息，待意图识别时使用")
             else:
                 #如果历史记录未查到图片
                 quote_type = 'TEXT'
@@ -262,16 +268,16 @@ def intent_recognition(text,intent_config):
     generateImgKeywords = intent_config['generate_img_intent']
     webSearchKeywords = intent_config['web_search_intent']
     for keyword in imgKeywords:
-        print(f"img意图：{keyword}")
+        # print(f"img意图：{keyword}")
         if keyword in text:
             isImgIntent = True
     for keyword in generateImgKeywords:
-        print(f"genimg意图：{keyword}")
+        # print(f"genimg意图：{keyword}")
         if keyword in text:
             isGenImgIntent = True
 
     for keyword in webSearchKeywords:
-        print(f"websearch意图：{keyword}")
+        # print(f"websearch意图：{keyword}")
         if keyword in text:
             isWebSearchIntent = True
 
